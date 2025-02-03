@@ -26,21 +26,25 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Docker Build Base
-        uses: docker/build-push-action@v6
-        with:
-          provenance: false
-          context: base/ubi9
-          platforms: linux/amd64, linux/arm64
-          tags: base-developer-image
+      - name: Docker Build Base Image
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --load \
+            --progress=plain \
+            -f base/ubi9/Dockerfile \
+            -t base-developer-image base/ubi9
       - name: Update Universal Developer Image Dockerfile
         run: sed "s|FROM quay.io/devfile/base-developer-image:ubi9-latest|FROM base-developer-image|" -i "universal/ubi9/Dockerfile"
+      - name: Display docker images
+        run: docker images
       - name: Docker Build Universal Developer Image
-        uses: docker/build-push-action@v6
-        with:
-          provenance: false
-          context: universal/ubi9
-          platforms: linux/amd64, linux/arm64
-          tags: universal-developer-image
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --load \
+            --progress=plain \
+            -f universal/ubi9/Dockerfile \
+            -t universal-developer-image universal/ubi9       
 
 
