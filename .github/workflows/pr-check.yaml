@@ -28,23 +28,25 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: Docker Build Base Image
         run: |
+          cd ${GITHUB_WORKSPACE}/base/ubi9 &&
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --load \
             --progress=plain \
             -f base/ubi9/Dockerfile \
-            -t base-developer-image base/ubi9
+            -t base-developer-image .
       - name: Update Universal Developer Image Dockerfile
-        run: sed "s|FROM quay.io/devfile/base-developer-image:ubi9-latest|FROM base-developer-image|" -i "universal/ubi9/Dockerfile"
+        run: sed "s|FROM quay.io/devfile/base-developer-image:ubi9-latest|FROM base-developer-image|" -i "${GITHUB_WORKSPACE}/universal/ubi9/Dockerfile"
       - name: Display docker images
         run: docker images
       - name: Docker Build Universal Developer Image
         run: |
+          cd ${GITHUB_WORKSPACE}/universal/ubi9 &&
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --load \
             --progress=plain \
             -f universal/ubi9/Dockerfile \
-            -t universal-developer-image universal/ubi9       
+            -t universal-developer-image .       
 
 
