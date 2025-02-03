@@ -31,7 +31,6 @@ jobs:
           cd ${GITHUB_WORKSPACE}/base/ubi9 &&
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            --load \
             --progress=plain \
             -f base/ubi9/Dockerfile \
             -t base-developer-image .
@@ -44,7 +43,6 @@ jobs:
           cd ${GITHUB_WORKSPACE}/universal/ubi9 &&
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            --load \
             --progress=plain \
             -f universal/ubi9/Dockerfile \
             -t universal-developer-image .       
