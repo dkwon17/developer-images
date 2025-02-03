@@ -11,6 +11,9 @@ name: Pull Request Check
 
 # Trigger the workflow on pull request
 on: [pull_request]
+env:
+  BASE_UBI9_IMAGE: quay.io/abazko/base-developer-image:pr-${{ github.event.number }}
+  UNIVERSAL_DEVELOPER_IMAGE: quay.io/abazko/universal-developer-image:pr-${{ github.event.number }}
 
 jobs:
   build_base_ubi9_image:
@@ -19,18 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Grab Pull Request number
-        run: |
-          pr_number=$(cat "PR_NUMBER")
-          echo "Pull Request: ${pr_number}"
-          if ! [[ "$pr_number" =~ ^[0-9]+$ ]]; then
-            echo "Wrong Pull Request number"
-            exit 1
-          fi
-          echo "_PR_NUMBER=$pr_number" >> $GITHUB_ENV
       - name: Free runner space
-        run: |
-          sudo rm -rf /usr/local/lib/android
+        run: sudo rm -rf /usr/local/lib/android
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -47,7 +40,7 @@ jobs:
           push: true
           context: base/ubi9
           platforms: linux/amd64, linux/arm64
-          tags: quay.io/abazko/base-developer-image:pr-${{env._PR_NUMBER}}
+          tags: ${{env.BASE_UBI9_IMAGE}}
 
   build_universal_ubi9_image:
     name: Build and publish universal ubi9 image to Quay.io
@@ -56,18 +49,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Grab Pull Request number
-        run: |
-          pr_number=$(cat "PR_NUMBER")
-          echo "Pull Request: ${pr_number}"
-          if ! [[ "$pr_number" =~ ^[0-9]+$ ]]; then
-            echo "Wrong Pull Request number"
-            exit 1
-          fi
-          echo "_PR_NUMBER=$pr_number" >> $GITHUB_ENV
       - name: Free runner space
-        run: |
-          sudo rm -rf /usr/local/lib/android
+        run: sudo rm -rf /usr/local/lib/android
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -79,31 +62,14 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
       - name: Update Universal Developer Image Dockerfile
-        run: sed "s|FROM quay.io/abazko/base-developer-image:ubi9-latest|FROM quay.io/abazko/base-developer-image:pr-${{env._PR_NUMBER}}|" -i "universal/ubi9/Dockerfile"
+        run: sed "s|FROM quay.io/abazko/base-developer-image:ubi9-latest|FROM ${{env.BASE_UBI9_IMAGE}}|" -i "universal/ubi9/Dockerfile"
       - name: Docker Build & Push Universal
         uses: docker/build-push-action@v6
         with:
           push: true
           context: universal/ubi9
           platforms: linux/amd64, linux/arm64
-          tags: quay.io/abazko/universal-developer-image:pr-${{env._PR_NUMBER}}
-
-  pr-comment:
-    name: Pull Request comment
-    runs-on: ubuntu-22.04
-    needs: build_universal_ubi9_image
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Grab Pull Request number
-        run: |
-          pr_number=$(cat "PR_NUMBER")
-          echo "Pull Request: ${pr_number}"
-          if ! [[ "$pr_number" =~ ^[0-9]+$ ]]; then
-            echo "Wrong Pull Request number"
-            exit 1
-          fi
-          echo "_PR_NUMBER=$pr_number" >> $GITHUB_ENV
+          tags: ${{env.UNIVERSAL_DEVELOPER_IMAGE}}
       - name: 'Comment PR'
         uses: actions/github-script@v7
         with:
@@ -113,5 +79,5 @@ jobs:
                issue_number: process.env._PR_NUMBER,
                owner: context.repo.owner,
                repo: context.repo.repo,
-               body: `Pull Request images published ✨\n\nUniversal developer image: [quay.io/abazko/universal-developer-image:pr-${{env._PR_NUMBER}}]quay.io/abazko/universal-developer-image:pr-${{env._PR_NUMBER}})`
+               body: `Pull Request images published ✨\n\nUniversal developer image: [${{env.UNIVERSAL_DEVELOPER_IMAGE}}](${{env.UNIVERSAL_DEVELOPER_IMAGE}})`
              })
