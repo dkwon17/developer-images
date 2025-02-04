@@ -124,7 +124,7 @@ jobs:
             quay.io/abazko/universal-developer-image:arm64-pr-${{github.event.number}} \
             --os linux --arch arm64
            
-          docker manifest push quay.io/abazko/universal-developer-image:arm64-pr-${{github.event.number}}
+          docker manifest push quay.io/abazko/universal-developer-image:pr-${{github.event.number}}
       - name: 'Comment PR'
         uses: actions/github-script@v7
         with:
