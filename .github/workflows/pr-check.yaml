@@ -98,7 +98,7 @@ jobs:
             --platform linux/${{env.arch}} \
             --progress=plain \
             --push \
-            -t quay.io/abazko/universal-developer-image:${{env.arch}}-pr-${{github.event.number}} .
+            -t quay.io/devfile/universal-developer-image:${{env.arch}}-pr-${{github.event.number}} .
 
   publish-images:
     name: publish image from the pull request
@@ -113,18 +113,18 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
       - name: publish
         run: |
-          docker manifest create quay.io/abazko/universal-developer-image:pr-${{github.event.number}} \
-            --amend quay.io/abazko/universal-developer-image:amd64-pr-${{github.event.number}} \
-            --amend quay.io/abazko/universal-developer-image:arm64-pr-${{github.event.number}}         
+          docker manifest create quay.io/devfile/universal-developer-image:pr-${{github.event.number}} \
+            --amend quay.io/devfile/universal-developer-image:amd64-pr-${{github.event.number}} \
+            --amend quay.io/devfile/universal-developer-image:arm64-pr-${{github.event.number}}         
           
-          docker manifest annotate quay.io/abazko/universal-developer-image:pr-${{github.event.number}} \
-            quay.io/abazko/universal-developer-image:amd64-pr-${{github.event.number}} \
+          docker manifest annotate quay.io/devfile/universal-developer-image:pr-${{github.event.number}} \
+            quay.io/devfile/universal-developer-image:amd64-pr-${{github.event.number}} \
             --os linux --arch amd64
-          docker manifest annotate quay.io/abazko/universal-developer-image:pr-${{github.event.number}} \
-            quay.io/abazko/universal-developer-image:arm64-pr-${{github.event.number}} \
+          docker manifest annotate quay.io/devfile/universal-developer-image:pr-${{github.event.number}} \
+            quay.io/devfile/universal-developer-image:arm64-pr-${{github.event.number}} \
             --os linux --arch arm64
            
-          docker manifest push quay.io/abazko/universal-developer-image:pr-${{github.event.number}}
+          docker manifest push quay.io/devfile/universal-developer-image:pr-${{github.event.number}}
       - name: 'Comment PR'
         uses: actions/github-script@v7
         with:
@@ -134,5 +134,5 @@ jobs:
                issue_number: ${{github.event.number}},
                owner: context.repo.owner,
                repo: context.repo.repo,
-               body: `Pull Request images published ✨\n\nUDI: [quay.io/abazko/universal-developer-image:pr-${{github.event.number}}](https://quay.io/abazko/universal-developer-image:pr-${{github.event.number}})`
+               body: `Pull Request images published ✨\n\nUDI: [quay.io/devfile/universal-developer-image:pr-${{github.event.number}}](https://quay.io/devfile/universal-developer-image:pr-${{github.event.number}})`
              })
