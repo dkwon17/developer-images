@@ -134,5 +134,5 @@ jobs:
                issue_number: ${{github.event.number}},
                owner: context.repo.owner,
                repo: context.repo.repo,
-               body: `Pull Request images published ✨\n\nEditor amd64: [quay.io/abazko/universal-developer-image:pr-${{github.event.number}}](https://quay.io/abazko/universal-developer-image:pr-${{github.event.number}})`
+               body: `Pull Request images published ✨\n\nUDI: [quay.io/abazko/universal-developer-image:pr-${{github.event.number}}](https://quay.io/abazko/universal-developer-image:pr-${{github.event.number}})`
              })
