@@ -52,7 +52,7 @@ jobs:
           cd base/ubi9 && docker buildx build \
           --platform linux/${{env.arch}} \
           --progress=plain \
-          --push \ 
+          --push \
           -t quay.io/abazko/base-developer-image:${{env.arch}}-${{env.short_sha}} .
 
   publish-base-image:
@@ -117,14 +117,14 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
-      - name: Build UDI9 image
+      - name: Build udi
         run: |
           cd universal/ubi9 && docker buildx build \
             --platform linux/${{env.arch}} \
             --progress=plain \
             --push \
             -t quay.io/abazko/universal-developer-image:${{env.arch}}-${{env.short_sha}} .
-          
+
   publish-udi:
     name: Publish udi
     runs-on: ubuntu-22.04
