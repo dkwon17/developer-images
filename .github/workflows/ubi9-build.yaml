@@ -60,14 +60,16 @@ jobs:
     runs-on: ubuntu-22.04
     needs: build-base-image
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set short_sha environment variable
+        run: echo short_sha="$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
       - name: Login to Quay.io
         uses: docker/login-action@v2
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
-      - name: Set short_sha environment variable
-        run: echo short_sha="$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
       - name: publish
         run: |
           for tag in latest ubi9-latest ubi9-${{env.short_sha}};
@@ -86,7 +88,7 @@ jobs:
           
             docker manifest push quay.io/abazko/base-developer-image:${tag}
           done
-      
+
   build-udi:
     name: Build udi
     strategy:
@@ -96,6 +98,8 @@ jobs:
     runs-on: ${{matrix.runners}}
     needs: publish-base-image
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set arch environment variable
         run: |
           if [[ ${{matrix.runners}} == 'ubuntu-22.04' ]]; then
@@ -105,8 +109,6 @@ jobs:
           fi
       - name: Set short_sha environment variable
         run: echo short_sha="$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Free runner space
         run: sudo rm -rf /usr/local/lib/android
       - name: Cleanup docker images
@@ -130,14 +132,16 @@ jobs:
     runs-on: ubuntu-22.04
     needs: build-udi
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set short_sha environment variable
+        run: echo short_sha="$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
       - name: Login to Quay.io
         uses: docker/login-action@v2
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
-      - name: Set short_sha environment variable
-        run: echo short_sha="$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
       - name: publish
         run: |
           for tag in latest ubi9-latest ubi9-${{env.short_sha}};
