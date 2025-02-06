@@ -39,7 +39,12 @@ RUN \
     TEMP_DIR="$(mktemp -d)"; \
     cd "${TEMP_DIR}"; \
     GH_VERSION="2.45.0"; \
-    GH_ARCH="linux_amd64"; \
+    # Download and install gh-cli depending on the architecture.
+    # See release page for details https://github.com/cli/cli/releases
+    # Default values are `amd64` and `linux` for architecture and OS type correspondingly.
+    _ARCH=$(case "$(uname -m)" in "aarch64") echo "arm64";; "armv6l") echo "armv6";; "i386"|"i486"|"i586"|"i686") echo "386";; *) echo "amd64";; esac); \
+    _OS=$(case "$(uname)" in "Darwin") echo "macOS";; *) echo "linux";; esac); \
+    GH_ARCH="${_OS}_${_ARCH}"; \
     GH_TGZ="gh_${GH_VERSION}_${GH_ARCH}.tar.gz"; \
     GH_TGZ_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/${GH_TGZ}"; \
     GH_CHEKSUMS_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt"; \
@@ -57,7 +62,17 @@ RUN \
     TEMP_DIR="$(mktemp -d)"; \
     cd "${TEMP_DIR}"; \
     RG_VERSION="13.0.0"; \
-    RG_ARCH="x86_64-unknown-linux-musl"; \
+    # Download and install ripgrep depending on the architecture.
+    # See release page for details https://github.com/BurntSushi/ripgrep/releases
+    # Default value is `x86_64-unknown-linux-musl`.
+    RG_ARCH=$(case "$(uname -m)" in \
+        "ppc64"|"ppc64le") echo "powerpc64-unknown-linux-gnu";; \
+        "s390x") echo "s390x-unknown-linux-gnu";; \
+        "aarch64") echo "aarch64-apple-darwin";; \
+        "armv7l") echo "armv7-unknown-linux-musleabi";; \
+        "i686") echo "i686-unknown-linux-gnu";; \
+        *) if [[ "$(uname)" == "Darwin" ]]; then echo "x86_64-apple-darwin"; else echo "x86_64-unknown-linux-musl"; fi;; \
+    esac); \
     RG_TGZ="ripgrep-${RG_VERSION}-${RG_ARCH}.tar.gz"; \
     RG_TGZ_URL="https://github.com/BurntSushi/ripgrep/releases/download/${RG_VERSION}/${RG_TGZ}"; \
     curl -sSLO "${RG_TGZ_URL}"; \
@@ -72,7 +87,15 @@ RUN \
     TEMP_DIR="$(mktemp -d)"; \
     cd "${TEMP_DIR}"; \
     BAT_VERSION="0.18.3"; \
-    BAT_ARCH="x86_64-unknown-linux-musl"; \
+    # Download and install bat depending on the architecture.
+    # See release page for details https://github.com/sharkdp/bat/releases
+    # Default value is `x86_64-unknown-linux-musl`.
+    BAT_ARCH=$(case "$(uname -m)" in \
+            "aarch64") if [[ "$(uname)" == "Darwin" ]]; then echo "aarch64-apple-darwin"; else echo "aarch64-unknown-linux-musl"; fi;; \
+            "armv6l"|"armv7l") echo "arm-unknown-linux-musleabihf";; \
+            "i686") echo "i686-unknown-linux-musl";; \
+            *) if [[ "$(uname)" == "Darwin" ]]; then echo "x86_64-apple-darwin"; else echo "x86_64-unknown-linux-musl"; fi;; \
+        esac); \
     BAT_TGZ="bat-v${BAT_VERSION}-${BAT_ARCH}.tar.gz"; \
     BAT_TGZ_URL="https://github.com/sharkdp/bat/releases/download/v${BAT_VERSION}/${BAT_TGZ}"; \
     curl -sSLO "${BAT_TGZ_URL}"; \
@@ -87,7 +110,15 @@ RUN \
     TEMP_DIR="$(mktemp -d)" && \
     cd "${TEMP_DIR}" && \
     FD_VERSION="8.7.0" && \
-    FD_ARCH="x86_64-unknown-linux-musl" &&\
+    # Download and install fd depending on the architecture.
+    # See release page for details https://github.com/sharkdp/fd/releases
+    # Default value is `x86_64-unknown-linux-musl`.
+    FD_ARCH=$(case "$(uname -m)" in \
+            "aarch64") if [[ "$(uname)" == "Darwin" ]]; then echo "aarch64-apple-darwin"; else echo "aarch64-unknown-linux-musl"; fi;; \
+            "armv6l"|"armv7l") echo "arm-unknown-linux-musleabihf";; \
+            "i686") echo "i686-unknown-linux-musl";; \
+            *) if [[ "$(uname)" == "Darwin" ]]; then echo "x86_64-apple-darwin"; else echo "x86_64-unknown-linux-musl"; fi;; \
+        esac); &&\
     FD_TGZ="fd-v${FD_VERSION}-${FD_ARCH}.tar.gz" && \
     FD_TGZ_URL="https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${FD_TGZ}" && \
     curl -sSLO "${FD_TGZ_URL}" && \
@@ -120,7 +151,12 @@ RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers; \
 # Add kubedock
 ENV KUBEDOCK_VERSION 0.17.0
 ENV KUBECONFIG=/home/user/.kube/config
-RUN curl -L https://github.com/joyrex2001/kubedock/releases/download/${KUBEDOCK_VERSION}/kubedock_${KUBEDOCK_VERSION}_linux_amd64.tar.gz | tar -C /usr/local/bin -xz --no-same-owner \
+# There is only x86_64 architecture available
+# See release page for details https://github.com/joyrex2001/kubedock/releases
+RUN _ARCH="amd64"; \
+    _OS=$(case "$(uname)" in "Darwin") echo "darwin";; Linux*) echo "linux";; *) echo "linux";; esac); \
+    KUBEDOCK_ARCH="${_OS}_${_ARCH}"; \
+    curl -L https://github.com/joyrex2001/kubedock/releases/download/${KUBEDOCK_VERSION}/kubedock_${KUBEDOCK_VERSION}_${KUBEDOCK_ARCH}.tar.gz | tar -C /usr/local/bin -xz --no-same-owner \
     && chmod +x /usr/local/bin/kubedock
 COPY --chown=0:0 kubedock_setup.sh /usr/local/bin/kubedock_setup
 
