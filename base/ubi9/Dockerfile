@@ -2,6 +2,8 @@
 
 # https://registry.access.redhat.com/ubi9/ubi
 FROM registry.access.redhat.com/ubi9/ubi:9.5-1734495538
+
+ARG TARGETARCH
 LABEL maintainer="Red Hat, Inc."
 
 LABEL com.redhat.component="devfile-base-container"
@@ -35,23 +37,12 @@ RUN dnf -y reinstall shadow-utils && \
     dnf clean all
 
 # Download and install gh-cli depending on the architecture.
-# See release page for details https://github.com/cli/cli/releases
-# Default values are `amd64` and `linux` for architecture and OS type correspondingly.
+# See release page for details https://github.com/cli/cli/releases/tag/v2.45.0
 RUN \
     TEMP_DIR="$(mktemp -d)"; \
     cd "${TEMP_DIR}"; \
     GH_VERSION="2.45.0"; \
-    _ARCH=$(case "$(uname -m)" in \
-        "i386"|"i486"|"i586"|"i686") echo "386";; \
-        "aarch64") echo "arm64";; \
-        "armv6l"|"armv7l") echo "armv6";; \
-        *) echo "amd64";; \
-    esac); \
-    _OS=$(case "$(uname)" in \
-        "Darwin") echo "macOS";; \
-        *) echo "linux";; \
-    esac); \
-    GH_ARCH="${_OS}_${_ARCH}"; \
+    GH_ARCH="linux_$TARGETARCH"; \
     GH_TGZ="gh_${GH_VERSION}_${GH_ARCH}.tar.gz"; \
     GH_TGZ_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/${GH_TGZ}"; \
     GH_CHEKSUMS_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt"; \
@@ -65,16 +56,16 @@ RUN \
     rm -rf "${TEMP_DIR}"
 
 # Download and install ripgrep depending on the architecture.
-# See release page for details https://github.com/BurntSushi/ripgrep/releases
-# Default value is `x86_64-unknown-linux-musl`.
+# See release page for details https://github.com/BurntSushi/ripgrep/releases/tag/13.0.0
 RUN \
     TEMP_DIR="$(mktemp -d)"; \
     cd "${TEMP_DIR}"; \
     RG_VERSION="13.0.0"; \
-    RG_ARCH=$(case "$(uname -m)" in \
-        "armv6l"|"armv7l") echo "arm-unknown-linux-gnueabihf";; \
-        *) if [[ "$(uname)" == "Darwin" ]]; then echo "x86_64-apple-darwin"; else echo "x86_64-unknown-linux-musl"; fi;; \
-    esac); \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        RG_ARCH="arm-unknown-linux-gnueabihf"; \
+    else \
+        RG_ARCH="x86_64-unknown-linux-musl"; \
+    fi; \
     RG_TGZ="ripgrep-${RG_VERSION}-${RG_ARCH}.tar.gz"; \
     RG_TGZ_URL="https://github.com/BurntSushi/ripgrep/releases/download/${RG_VERSION}/${RG_TGZ}"; \
     curl -sSLO "${RG_TGZ_URL}"; \
@@ -85,18 +76,16 @@ RUN \
     rm -rf "${TEMP_DIR}"
 
 # Download and install bat depending on the architecture.
-# See release page for details https://github.com/sharkdp/bat/releases
-# Default value is `x86_64-unknown-linux-musl`.
+# See release page for details https://github.com/sharkdp/bat/releases/tag/v0.18.3
 RUN \
     TEMP_DIR="$(mktemp -d)"; \
     cd "${TEMP_DIR}"; \
     BAT_VERSION="0.18.3"; \
-    BAT_ARCH=$(case "$(uname -m)" in \
-        "aarch64") echo "aarch64-unknown-linux-gnu";; \
-        "armv6l"|"armv7l") echo "arm-unknown-linux-gnueabihf";; \
-        "i686") echo "i686-unknown-linux-musl";; \
-        *) if [[ "$(uname)" == "Darwin" ]]; then echo "x86_64-apple-darwin"; else echo "x86_64-unknown-linux-musl"; fi;; \
-    esac); \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        BAT_ARCH="aarch64-unknown-linux-gnu"; \
+    else \
+        BAT_ARCH="x86_64-unknown-linux-musl"; \
+    fi; \
     BAT_TGZ="bat-v${BAT_VERSION}-${BAT_ARCH}.tar.gz"; \
     BAT_TGZ_URL="https://github.com/sharkdp/bat/releases/download/v${BAT_VERSION}/${BAT_TGZ}"; \
     curl -sSLO "${BAT_TGZ_URL}"; \
@@ -107,18 +96,16 @@ RUN \
     rm -rf "${TEMP_DIR}"
 
 # Download and install fd depending on the architecture.
-# See release page for details https://github.com/sharkdp/fd/releases
-# Default value is `x86_64-unknown-linux-musl`.
+# See release page for details https://github.com/sharkdp/fd/releases/tag/v8.7.0
 RUN \
     TEMP_DIR="$(mktemp -d)" && \
     cd "${TEMP_DIR}" && \
     FD_VERSION="8.7.0" && \
-    FD_ARCH=$(case "$(uname -m)" in \
-        "aarch64") echo "aarch64-unknown-linux-gnu";; \
-        "armv6l"|"armv7l") echo "arm-unknown-linux-musleabihf";; \
-        "i686") echo "i686-unknown-linux-musl";; \
-        *) if [[ "$(uname)" == "Darwin" ]]; then echo "x86_64-apple-darwin"; else echo "x86_64-unknown-linux-musl"; fi;; \
-    esac) && \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        FD_ARCH="aarch64-unknown-linux-gnu"; \
+    else \
+        FD_ARCH="x86_64-unknown-linux-musl"; \
+    fi && \
     FD_TGZ="fd-v${FD_VERSION}-${FD_ARCH}.tar.gz" && \
     FD_TGZ_URL="https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${FD_TGZ}" && \
     curl -sSLO "${FD_TGZ_URL}" && \
@@ -149,13 +136,10 @@ RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers; \
     touch /var/lib/shared/overlay-layers/layers.lock
 
 # Add kubedock
-# See release page for details https://github.com/joyrex2001/kubedock/releases
+# See release page for details https://github.com/joyrex2001/kubedock/releases/tag/0.17.0
 ENV KUBEDOCK_VERSION 0.17.0
 ENV KUBECONFIG=/home/user/.kube/config
-RUN KUBEDOCK_ARCH=$(case "$(uname)" in \
-      "Darwin") echo "darwin_amd64";; \
-      *) echo "linux_amd64";; \
-    esac); \
+RUN KUBEDOCK_ARCH="linux_amd64" && \
     curl -L https://github.com/joyrex2001/kubedock/releases/download/${KUBEDOCK_VERSION}/kubedock_${KUBEDOCK_VERSION}_${KUBEDOCK_ARCH}.tar.gz | tar -C /usr/local/bin -xz --no-same-owner \
     && chmod +x /usr/local/bin/kubedock
 COPY --chown=0:0 kubedock_setup.sh /usr/local/bin/kubedock_setup
