@@ -118,7 +118,7 @@ RUN \
         "armv6l"|"armv7l") echo "arm-unknown-linux-musleabihf";; \
         "i686") echo "i686-unknown-linux-musl";; \
         *) if [[ "$(uname)" == "Darwin" ]]; then echo "x86_64-apple-darwin"; else echo "x86_64-unknown-linux-musl"; fi;; \
-    esac); && \
+    esac) && \
     FD_TGZ="fd-v${FD_VERSION}-${FD_ARCH}.tar.gz" && \
     FD_TGZ_URL="https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${FD_TGZ}" && \
     curl -sSLO "${FD_TGZ_URL}" && \
