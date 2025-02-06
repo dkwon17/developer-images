@@ -57,7 +57,7 @@ jobs:
       matrix:
         runners: ['ubuntu-22.04', 'ubuntu-22.04-arm']
     runs-on: ${{matrix.runners}}
-    needs: publish-base-image
+    needs: build-base-image
     steps:
       - name: Set arch environment variable
         run: |
