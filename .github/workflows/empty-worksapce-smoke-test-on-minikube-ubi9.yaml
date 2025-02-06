@@ -71,12 +71,12 @@ jobs:
     - name: Build base image
       run: |
        eval $(minikube docker-env)
-       cd base/ubi9 && docker build -t quay.io/abazko/base-developer-image:ubi9-latest .
+       cd base/ubi9 && docker build -t quay.io/devfile/base-developer-image:ubi9-latest .
 
     - name: Build universal image
       run: |
         eval $(minikube docker-env)
-        cd universal/ubi9 && docker build -t quay.io/abazko/universal-developer-image:${{ env.PR_NUMBER }} .
+        cd universal/ubi9 && docker build -t quay.io/devfile/universal-developer-image:${{ env.PR_NUMBER }} .
 
     - name: Checkout DWO
       uses: actions/checkout@master
@@ -104,7 +104,7 @@ jobs:
     - name: Check that UDI is presen in the image list
       run: |
         # we used it for the build above and do not need it anymore. It saves the disk space
-        minikube image rm quay.io/abazko/base-developer-image:ubi9-latest
+        minikube image rm quay.io/devfile/base-developer-image:ubi9-latest
         minikube image list --format table
 
     - name: Install NodeJs
@@ -119,7 +119,7 @@ jobs:
 
     - name: Run Empty workspace smoke test
       run: |
-        export TS_API_TEST_UDI_IMAGE=quay.io/abazko/universal-developer-image:${{ env.PR_NUMBER }}
+        export TS_API_TEST_UDI_IMAGE=quay.io/devfile/universal-developer-image:${{ env.PR_NUMBER }}
         cd che/tests/e2e
         npm i
         npm run driver-less-test
