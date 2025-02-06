@@ -42,7 +42,7 @@ RUN \
     cd "${TEMP_DIR}"; \
     GH_VERSION="2.45.0"; \
     _ARCH=$(case "$(uname -m)" in \
-        "i386"|"i486"|"i586"|"i686"); echo "386";; \
+        "i386"|"i486"|"i586"|"i686") echo "386";; \
         "aarch64") echo "arm64";; \
         "armv6l"|"armv7l") echo "armv6";; \
         *) echo "amd64";; \
