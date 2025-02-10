@@ -118,10 +118,10 @@ jobs:
         path: che
 
     # Host devfile locally.
-    # Use the next tag for the che-code image and the PR number for the universal-developer-image
+    # Use the insiders tag for the che-code image and the PR number for the universal-developer-image
     - name: Host devfile locally
       run: |
-        oc apply -f - <<EOF
+        kubectl apply -f - <<EOF
         apiVersion: v1
         kind: ConfigMap
         metadata:
@@ -147,7 +147,7 @@ jobs:
             components:
               - name: che-code-injector
                 container:
-                  image: quay.io/che-incubator/che-code:next
+                  image: quay.io/che-incubator/che-code:insiders
                   command:
                     - /entrypoint-init-container.sh
                   volumeMounts:
