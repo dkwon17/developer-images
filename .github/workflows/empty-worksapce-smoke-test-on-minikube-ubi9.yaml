@@ -101,7 +101,7 @@ jobs:
         kubectl wait deployment -n devworkspace-controller devworkspace-webhook-server --for condition=Available=True --timeout=$DEPLOYMENT_TIMEOUT
         kubectl wait deployment -n devworkspace-controller devworkspace-controller-manager --for condition=Available=True --timeout=$DEPLOYMENT_TIMEOUT
 
-    - name: Check that UDI is presen in the image list
+    - name: Check that UDI is present in the image list
       run: |
         # we used it for the build above and do not need it anymore. It saves the disk space
         minikube image rm quay.io/devfile/base-developer-image:ubi9-latest
@@ -117,90 +117,133 @@ jobs:
         repository: eclipse/che
         path: che
 
+    # Host devfile locally.
+    # Use the next tag for the che-code image and the PR number for the universal-developer-image
+    - name: Host devfile locally
+      run: |
+        oc apply -f - <<EOF
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: devfile.yaml
+        data:
+          devfile.yaml: |
+            schemaVersion: 2.2.2
+            metadata:
+              name: che-code
+            commands:
+              - id: init-container-command
+                apply:
+                  component: che-code-injector
+              - id: init-che-code-command
+                exec:
+                  component: che-code-runtime-description
+                  commandLine: nohup /checode/entrypoint-volume.sh > /checode/entrypoint-logs.txt 2>&1 &
+            events:
+              preStart:
+                - init-container-command
+              postStart:
+                - init-che-code-command
+            components:
+              - name: che-code-injector
+                container:
+                  image: quay.io/che-incubator/che-code:next
+                  command:
+                    - /entrypoint-init-container.sh
+                  volumeMounts:
+                    - name: checode
+                      path: /checode
+                  memoryLimit: 256Mi
+                  memoryRequest: 32Mi
+                  cpuLimit: 500m
+                  cpuRequest: 30m
+              - name: che-code-runtime-description
+                container:
+                  image: quay.io/devfile/universal-developer-image:${{ env.PR_NUMBER }}
+                  memoryLimit: 1024Mi
+                  memoryRequest: 256Mi
+                  cpuLimit: 500m
+                  cpuRequest: 30m
+                  volumeMounts:
+                    - name: checode
+                      path: /checode
+                  endpoints:
+                    - name: che-code
+                      attributes:
+                        type: main
+                        cookiesAuthEnabled: true
+                        discoverable: false
+                        urlRewriteSupported: true
+                      targetPort: 3100
+                      exposure: public
+                      secure: true
+                      protocol: https
+                    - name: code-redirect-1
+                      targetPort: 13131
+                      exposure: public
+                      protocol: https
+                      attributes:
+                        discoverable: false
+                        urlRewriteSupported: false
+                    - name: code-redirect-2
+                      targetPort: 13132
+                      exposure: public
+                      protocol: https
+                      attributes:
+                        discoverable: false
+                        urlRewriteSupported: false
+                    - name: code-redirect-3
+                      targetPort: 13133
+                      exposure: public
+                      protocol: https
+                      attributes:
+                        discoverable: false
+                        urlRewriteSupported: false
+                attributes:
+                  app.kubernetes.io/component: che-code-runtime
+                  app.kubernetes.io/part-of: che-code.eclipse.org
+                  controller.devfile.io/container-contribution: true
+              - name: checode
+                volume: {}
+        ---
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: file-server
+          labels:
+            app: file-server
+        spec:
+          containers:
+            - name: nginx-container
+              image: nginx
+              ports:
+                - containerPort: 80
+              volumeMounts:
+                - name: server-volume
+                  mountPath: /usr/share/nginx/html
+                  readOnly: true
+          volumes:
+            - name: server-volume
+              configMap:
+                name: devfile.yaml
+        ---        
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: file-service
+        spec:
+          selector:
+            app: file-server
+          ports:
+            - protocol: TCP
+              port: 80
+              targetPort: 80
+        EOF
+
     - name: Run Empty workspace smoke test
       run: |
-        cat > /tmp/devfile.yaml <<EOF
-        schemaVersion: 2.2.2
-        metadata:
-          name: che-code
-        commands:
-          - id: init-container-command
-            apply:
-              component: che-code-injector
-          - id: init-che-code-command
-            exec:
-              component: che-code-runtime-description
-              commandLine: nohup /checode/entrypoint-volume.sh > /checode/entrypoint-logs.txt 2>&1 &
-        events:
-          preStart:
-            - init-container-command
-          postStart:
-            - init-che-code-command
-        components:
-          - name: che-code-injector
-            container:
-              image: quay.io/che-incubator/che-code:next
-              command:
-                - /entrypoint-init-container.sh
-              volumeMounts:
-                - name: checode
-                  path: /checode
-              memoryLimit: 256Mi
-              memoryRequest: 32Mi
-              cpuLimit: 500m
-              cpuRequest: 30m
-          - name: che-code-runtime-description
-            container:
-              image: quay.io/devfile/universal-developer-image:${{ env.PR_NUMBER }}
-              memoryLimit: 1024Mi
-              memoryRequest: 256Mi
-              cpuLimit: 500m
-              cpuRequest: 30m
-              volumeMounts:
-                - name: checode
-                  path: /checode
-              endpoints:
-                - name: che-code
-                  attributes:
-                    type: main
-                    cookiesAuthEnabled: true
-                    discoverable: false
-                    urlRewriteSupported: true
-                  targetPort: 3100
-                  exposure: public
-                  secure: true
-                  protocol: https
-                - name: code-redirect-1
-                  targetPort: 13131
-                  exposure: public
-                  protocol: https
-                  attributes:
-                    discoverable: false
-                    urlRewriteSupported: false
-                - name: code-redirect-2
-                  targetPort: 13132
-                  exposure: public
-                  protocol: https
-                  attributes:
-                    discoverable: false
-                    urlRewriteSupported: false
-                - name: code-redirect-3
-                  targetPort: 13133
-                  exposure: public
-                  protocol: https
-                  attributes:
-                    discoverable: false
-                    urlRewriteSupported: false
-            attributes:
-              app.kubernetes.io/component: che-code-runtime
-              app.kubernetes.io/part-of: che-code.eclipse.org
-              controller.devfile.io/container-contribution: true
-          - name: checode
-            volume: {}
-        EOF
-        minikube cp /tmp/devfile.yaml /tmp/devfile.yaml
         export TS_API_TEST_UDI_IMAGE=quay.io/devfile/universal-developer-image:${{ env.PR_NUMBER }}
-        export TS_API_TEST_CHE_CODE_EDITOR_DEVFILE_URI=file:///tmp/devfile.yaml
+        export TS_API_TEST_CHE_CODE_EDITOR_DEVFILE_URI=http://file-service.default.svc:80/devfile.yaml
         cd che/tests/e2e
         npm i
         npm run driver-less-test
