@@ -22,19 +22,19 @@ fi
 
 # Find files under /home/tooling/.config and create symlinks. The /home/tooling/.config folder
 # is ignored by stow with the .stow-local-ignore file
-if [ -d /home/tooling/.config ]; then
-  for file in $(find /home/tooling/.config -type f); do
-    tooling_dir=$(dirname "$file")
+# if [ -d /home/tooling/.config ]; then
+#   for file in $(find /home/tooling/.config -type f); do
+#     tooling_dir=$(dirname "$file")
 
-    # Create dir in /home/user if it does not exist already
-    mkdir -p $(replace_user_home "$tooling_dir")
+#     # Create dir in /home/user if it does not exist already
+#     mkdir -p $(replace_user_home "$tooling_dir")
 
-    # Create symbolic link if it does not exist already
-    if [ ! -f $(replace_user_home $file) ]; then
-      ln -s $file $(replace_user_home $file)
-    fi
-  done
-fi
+#     # Create symbolic link if it does not exist already
+#     if [ ! -f $(replace_user_home $file) ]; then
+#       ln -s $file $(replace_user_home $file)
+#     fi
+#   done
+# fi
 
 # Setup $PS1 for a consistent and reasonable prompt
 if [ -w "${HOME}" ] && [ ! -f "${HOME}"/.bashrc ]; then
@@ -89,6 +89,7 @@ if [ $HOME_USER_MOUNTED -eq 0 ] && [ ! -f $STOW_COMPLETE ]; then
     # We are now ready to run stow
     #
     # Create symbolic links from /home/tooling/ -> /home/user/
+    sed -i '/^\\\.config$/d' /home/tooling/.stow-local-ignore
     stow . -t /home/user/ -d /home/tooling/ --no-folding -v 2 > /tmp/stow.log 2>&1
 fi
 
