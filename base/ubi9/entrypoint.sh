@@ -90,13 +90,49 @@ if [ $HOME_USER_MOUNTED -eq 0 ] && [ ! -f $STOW_COMPLETE ]; then
     #
     # Create symbolic links from /home/tooling/ -> /home/user/
     stow . -t /home/user/ -d /home/tooling/ --no-folding -v 2 > /tmp/stow.log 2>&1
-    # Vim does not permit .viminfo to be a symbolic link for security reasons, so manually copy it
-    cp /home/tooling/.viminfo /home/user/.viminfo
-    # We have to restore bash-related files back onto /home/user/ (since they will have been overwritten by the PVC)
-    # but we don't want them to be symbolic links (so that they persist on the PVC)
-    cp /home/tooling/.bashrc /home/user/.bashrc
-    cp /home/tooling/.bash_profile /home/user/.bash_profile
-    touch $STOW_COMPLETE
+fi
+
+# Read .copy-files and copy files from /home/tooling to /home/user
+if [ -f "/home/tooling/.copy-files" ]; then
+    echo "Processing .copy-files..."
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip empty and commented lines
+        [[ -z "$line" || "$line" == \#* ]] && continue
+
+        if [ -e "/home/tooling/$line" ]; then
+            tooling_path=$(realpath "/home/tooling/$line")
+            
+            # Determine target path based on whether source is a directory
+            if [ -d "$tooling_path" ]; then
+                # For directories: copy to parent directory (e.g., .config/test -> /home/user/.config/)
+                target_parent=$(dirname "/home/user/$line")
+                target_full="$target_parent/$(basename "$tooling_path")"
+                
+                # Skip if target directory already exists
+                if [ -d "$target_full" ]; then
+                    echo "Directory $target_full already exists, skipping..."
+                    continue
+                fi
+                
+                echo "Copying directory $tooling_path to $target_parent/"
+                mkdir -p "$target_parent"
+                cp --no-clobber -r "$tooling_path" "$target_parent/"
+            else
+                # For files: copy to exact target path
+                target_full="/home/user/$line"
+                target_parent=$(dirname "$target_full")
+                
+                echo "Copying file $tooling_path to $target_full"
+                mkdir -p "$target_parent"
+                cp --no-clobber -r "$tooling_path" "$target_full"
+            fi
+        else
+            echo "Warning: /home/tooling/$line does not exist, skipping..."
+        fi
+    done < /home/tooling/.copy-files
+    echo "Finished processing .copy-files."
+else
+    echo "No .copy-files found, skipping copy operation."
 fi
 
 exec "$@"
